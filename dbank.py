@@ -9,7 +9,7 @@ import hashlib
 import distutils.spawn
 import subprocess
 import os.path
-
+import sys
 
 # decrypt 'eb' type, NO test.
 def decrypt_c(h, l):
@@ -85,30 +85,35 @@ def is_htmlfile(file_name):
 
 
 # call wget to download
-def wget_download(download_url, file_name='', resume=False):
+def wget_download(download_url, file_name, args):
     wget_cmd = ['wget', download_url]
     if file_name != '':
         wget_cmd.append('-O')
         wget_cmd.append(file_name)
-    if resume and not is_htmlfile(file_name):
+    if args.resume and not is_htmlfile(file_name):
         wget_cmd.append('-c')
+    if args.other:
+        wget_cmd.append(args.other);
     assert distutils.spawn.find_executable(wget_cmd[0]), "Cannot find %s" % wget_cmd[0]
     exit_code = subprocess.call(wget_cmd)
     if exit_code != 0:
-        raise Exception('Cannot call wget to download.')
+        # raise Exception('Cannot call wget to download.')
+        sys.stderr.write("ERROR: wget returned %d on getting %s url: %s" % (exit_code, file_name, download_url))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='DBank Downloader')
     parser.add_argument('url', help='DBank URL')
-    parser.add_argument('--resume', help='Resume getting a partially-downloaded file.', action='store_true')
-    parser.add_argument('--only-showurl', dest='showurl', help='No download, only show download url', action='store_true')
+    parser.add_argument('-c', '--resume', help='Resume getting a partially-downloaded file.', action='store_true')
+    parser.add_argument('-v', '--verbose', help='show debug info.', action='store_true')
+    parser.add_argument('-t', '--only-showurl', dest='showurl', help='No download, only show download url', action='store_true')
+    parser.add_argument('--other', dest='other', required=False, help='wget other options')
     args = parser.parse_args()
 
-    # replace dbank.com to vmail.com in url
+    # replace dbank.com to vmall.com in url
     args.url = args.url.replace('dbank.com', 'vmall.com')
 
-    # check the url contain vmail.com
+    # check the url contain vmall.com
     if args.url.find('vmall.com') == -1:
         raise Exception('URL must contain dbank.com or vmall.com.')
 
@@ -144,7 +149,5 @@ if __name__ == '__main__':
 
         if args.showurl:
             print('%s: %s' % (fn, url))
-        elif args.resume:
-            wget_download(url, fn, True)
         else:
-            wget_download(url, fn)
+            wget_download(url, fn, args)
